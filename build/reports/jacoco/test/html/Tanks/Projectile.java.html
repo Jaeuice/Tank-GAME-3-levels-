@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Projectile.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tanks_scaffold_fucktry</a> &gt; <a href="index.source.html" class="el_package">Tanks</a> &gt; <span class="el_source">Projectile.java</span></div><h1>Projectile.java</h1><pre class="source lang-java linenums">package Tanks;
+
+import processing.core.PImage;
+import processing.core.PApplet;
+import processing.data.JSONObject;
+import java.util.*;
+
+public class Projectile{
+    private App app;
+    private float x,y,vx,vy;
+<span class="nc" id="L11">    private final float gravity = -0.2f;</span>
+    private float windForce;
+    private int[] colour;
+<span class="nc" id="L14">    private boolean isProjectileDisplayed = true;</span>
+<span class="nc" id="L15">    private boolean isCollided = false;</span>
+    private String tankId;
+
+<span class="nc" id="L18">    public Projectile(App app, float x, float y, float angle, int power, float windForce, int[] colour,String tankId){</span>
+<span class="nc" id="L19">        this.app = app;</span>
+<span class="nc" id="L20">        this.x = x;</span>
+<span class="nc" id="L21">        this.y = y;</span>
+<span class="nc" id="L22">        float initialVelocity = calculateInitialVelocity(power);</span>
+<span class="nc" id="L23">        this.vx = initialVelocity * (float)Math.sin(angle);</span>
+<span class="nc" id="L24">        this.vy = initialVelocity * (float)Math.cos(angle);</span>
+<span class="nc" id="L25">        this.windForce = windForce;</span>
+<span class="nc" id="L26">        this.colour = colour;</span>
+<span class="nc" id="L27">        this.tankId = tankId;</span>
+        //System.out.println(&quot;Wind&quot; + windForce);
+        //System.out.println(&quot;The power is&quot; + power);
+        //System.out.println(&quot;The InitialVelocity is&quot; + initialVelocity);
+        //System.out.println(&quot;Intial vx: &quot; +vx);
+        //System.out.println(&quot;Inital vy: &quot; + vy);
+<span class="nc" id="L33">    }</span>
+
+    private float calculateInitialVelocity(int power) {
+        //System.out.println(&quot;Received power: &quot; + power); 
+<span class="nc" id="L37">        float v = 2 + (power/100.0f) * 16;</span>
+<span class="nc" id="L38">        return v; </span>
+    }
+    public void update() {
+<span class="nc" id="L41">        vx += windForce; </span>
+<span class="nc" id="L42">        vy += gravity; </span>
+<span class="nc" id="L43">        x += vx;</span>
+<span class="nc" id="L44">        y -= vy;</span>
+<span class="nc" id="L45">    }</span>
+        /*
+         * Wriite a mwthod to check the collision of projectile and terrain
+        */
+    public void collision(float[] terrain){
+            //Check if the projectile is disaplayed
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if(isProjectileDisplayed == false){</span>
+<span class="nc" id="L52">            return;</span>
+        }
+        //boolean damageApplied = false; // 添加一个标志来控制伤害应用
+            //Check the collision
+<span class="nc" id="L56">        int index = Math.round(x);</span>
+<span class="nc" id="L57">        int indexF = Math.round(Math.abs(vx)); </span>
+
+<span class="nc" id="L59">        ArrayList&lt;Integer&gt; indexList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        for (int i = index - indexF; i &lt;= index + indexF; i++) {</span>
+<span class="nc" id="L61">            indexList.add(i);</span>
+        }
+
+<span class="nc" id="L64">        int[] indicesToCheck = indexList.stream().mapToInt(i -&gt; i).toArray();</span>
+
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        for (int i : indicesToCheck) {</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">        if (i &gt;= 0 &amp;&amp; i &lt; terrain.length) {</span>
+<span class="nc" id="L68">            float terrainHeight = App.HEIGHT - terrain[i];</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (Math.abs(terrainHeight - y) &lt; 5) {  </span>
+<span class="nc" id="L70">                isProjectileDisplayed = false;</span>
+<span class="nc" id="L71">                isCollided = true;</span>
+                //System.out.println(&quot;Collision detected at x: &quot; + x + &quot;, index: &quot; + i + &quot;, terrain height: &quot; + terrain[i]);
+
+                //Terrain destroyed
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                for(int j = 0; j &lt; terrain.length; j ++){</span>
+                    //The distance of the terrain's point ad exlpored point
+                    //System.out.println(&quot;Original terrain Height is&quot; + terrain[j]);
+<span class="nc" id="L78">                    double d = Math.sqrt((j-x)*(j-x) + (App.HEIGHT - terrain[j]-y)*(App.HEIGHT - terrain[j]-y));</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                    if (d &lt;= 30){</span>
+                        //System.out.println(&quot;Original terrain Height is&quot; + terrain[j]);
+                        //double radian = Math.abs(x-j) / 30 * Math.PI / 2;
+<span class="nc" id="L82">                        double radian = Math.toRadians((Math.abs(x-j)/30)*90);</span>
+<span class="nc" id="L83">                        float newChange = (float) (30 * Math.cos(radian));</span>
+<span class="nc" id="L84">                         terrain[j] -= newChange;</span>
+                        //double Px = x;
+                        //double Py = y;
+                        //double x0 = j;
+                        //double y0 = App.HEIGHT-terrain[j];
+                        //double y1 = Py - Math.sqrt(Math.pow(30, 2) - Math.pow(x0 - Px, 2)); 
+                        //double newChange = (float)Math.abs(y1-y0);
+                        //System.out.println(&quot;Original:&quot; + y0);
+                        //terrain[j] = terrain[j]-newChange;
+                        //terrain[j] = (float)(App.HEIGHT-(y0+newChange));
+                        //System.out.println(&quot;recent: &quot;+terrain[j]+&quot; changed: &quot;+ newChange);
+                        //terrain[j] = (float)(App.HEIGHT-(y0+newChange));
+                    }
+                    //getSmoothedHeights(terrain);
+                }
+                //Check if there any tank nearby
+<span class="nc" id="L100">                ArrayList&lt;Tank&gt; tanks = App.getAllTanks();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                for (Tank t : tanks) {</span>
+<span class="nc" id="L102">                    float Tx = t.getPosition()[0];</span>
+<span class="nc" id="L103">                    float Ty = t.getPosition()[1];</span>
+<span class="nc" id="L104">                    double d2 = Math.sqrt((Tx - x)*(Tx - x)+(Ty - y)*(Ty - y));</span>
+<span class="nc bnc" id="L105" title="All 4 branches missed.">                    if(t.alive() &amp;&amp; d2&lt;=30){</span>
+                        //System.out.println(&quot;Damage is &quot; + d2);
+<span class="nc" id="L107">                        double damage = 60 - 2*d2 ;// 60 - d/30*60;</span>
+<span class="nc" id="L108">                        t.decreaseHealth(damage);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                        if (!t.getTankId().equals(this.tankId)) { // Avoid count the score which hurt itself</span>
+<span class="nc" id="L110">                            app.updateScore(this.tankId, (int) damage);</span>
+                        }
+                        break; 
+                    }
+<span class="nc" id="L114">                }</span>
+                //Check the tank if have parachute
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                for (Tank t :tanks){</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                    if(t.isFlying(terrain)){</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">                        if(t.parachutes &gt; 0){</span>
+<span class="nc" id="L119">                            t.parachutes -= 1;</span>
+<span class="nc" id="L120">                            t.paraFlying = true;</span>
+                        } else {
+<span class="nc" id="L122">                            t.noParaFlying = true;</span>
+                        }
+                    }
+<span class="nc" id="L125">                }</span>
+<span class="nc" id="L126">                break;</span>
+            }
+                //break;
+            }
+        }
+<span class="nc" id="L131">    }</span>
+
+        
+
+    public void draw(){
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (isCollided){</span>
+<span class="nc" id="L137">                app.noStroke();</span>
+                //Red
+<span class="nc" id="L139">                app.fill(255,0,0); </span>
+<span class="nc" id="L140">                app.ellipse(x,y,60,60);</span>
+                //Orange
+<span class="nc" id="L142">                app.fill(255,97,0);</span>
+<span class="nc" id="L143">                app.ellipse(x,y,30,30);</span>
+                //Yellow
+<span class="nc" id="L145">                app.fill(255,255,0);</span>
+<span class="nc" id="L146">                app.ellipse(x,y,12,12);</span>
+<span class="nc" id="L147">                isCollided = false;</span>
+                //System.out.println(&quot;Projectile at x: &quot; + x + &quot; y: &quot; + y + &quot; is not displayed due to collision.&quot;);
+            }
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (isProjectileDisplayed){</span>
+<span class="nc" id="L151">                app.fill(app.color(colour[0], colour[1], colour[2]));</span>
+<span class="nc" id="L152">                app.ellipse(x, y, 10, 10); </span>
+                //System.out.println(&quot;Drawing projectile at x: &quot; + x + &quot; y: &quot; + y);
+            }
+
+<span class="nc" id="L156">    }</span>
+        
+
+    public float[] movingAverage(float[] heights) {
+<span class="nc" id="L160">            int n = 32;</span>
+<span class="nc" id="L161">            float[] movingAverageHeights = new float[heights.length];</span>
+        
+            // Calculation
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            for (int i = 0; i &lt; heights.length; i++) {</span>
+<span class="nc" id="L165">                int sum = 0;</span>
+<span class="nc" id="L166">                int count = 0;</span>
+    
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                for (int j = i; j &lt; i + n &amp;&amp; j &lt; heights.length; j++) {</span>
+<span class="nc" id="L169">                    sum += heights[j];</span>
+<span class="nc" id="L170">                    count++;</span>
+                }
+        
+<span class="nc" id="L173">                movingAverageHeights[i] = 0; </span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                if (count &gt; 0) {</span>
+<span class="nc" id="L175">                    double average = (double) sum / count;</span>
+<span class="nc" id="L176">                    movingAverageHeights[i] = (float) Math.round(average);</span>
+                }
+            }
+            
+<span class="nc" id="L180">            return movingAverageHeights;</span>
+    }
+
+    public float[] getSmoothedHeights(float[] heights){
+<span class="nc" id="L184">        heights = movingAverage(movingAverage(heights));</span>
+<span class="nc" id="L185">        return heights;</span>
+    }
+
+
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

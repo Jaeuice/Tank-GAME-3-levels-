@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Tank.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tanks_scaffold_fucktry</a> &gt; <a href="index.source.html" class="el_package">Tanks</a> &gt; <span class="el_source">Tank.java</span></div><h1>Tank.java</h1><pre class="source lang-java linenums">package Tanks;
+
+import org.checkerframework.checker.units.qual.A;
+import org.checkerframework.checker.units.qual.radians;
+
+import processing.core.PApplet;
+import processing.core.PImage;
+import processing.data.JSONArray;
+import processing.data.JSONObject;
+import processing.event.KeyEvent;
+import processing.event.MouseEvent;
+
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+
+import java.io.*;
+import java.util.*;
+
+
+public class Tank {
+    private App app; 
+    private String tankId;
+    private float turretAngle;    // Angle of the turret
+    private int health;           // Health of the tank
+    private int fuel;             // Fuel level for movement
+    private int power;            // Power of the projectile
+    private float x;                // The Xposition of the tank
+    private float y;                // The Yposition of the tank
+    private int[] colour;          // The colour of the tank
+    private float[] path;
+    private int turretColour;
+    private ArrayList&lt;Projectile&gt; projectiles; 
+    //private float windForce; 
+    public int parachutes;
+<span class="fc" id="L36">    public boolean noParaFlying = false;</span>
+<span class="fc" id="L37">    public boolean paraFlying = false;</span>
+<span class="fc" id="L38">    public boolean isAlive = true;</span>
+    
+    
+
+
+    private static final int TURRET_LENGTH = 15;
+    private static final float MOVE_SPEED = 60; // Pixels per second for tank movement
+    private static final float ROTATE_SPEED = 3; // Radians per second for turret rotation度数
+
+<span class="fc" id="L47">    public Tank(App app, String tankId, float position, float position2, int[] colour, float[] terrainHeights){</span>
+<span class="fc" id="L48">        this.tankId = tankId;</span>
+<span class="fc" id="L49">        this.app = app;</span>
+<span class="fc" id="L50">        this.turretAngle = 0; // default turret angle facing upwards</span>
+<span class="fc" id="L51">        this.health = 100;    // default health</span>
+<span class="fc" id="L52">        this.fuel = 250;      // default fuel</span>
+<span class="fc" id="L53">        this.power = 50;      // default power</span>
+<span class="fc" id="L54">        this.x = position;</span>
+<span class="fc" id="L55">        this.y = App.HEIGHT - position2;</span>
+<span class="fc" id="L56">        this.colour = colour;</span>
+<span class="fc" id="L57">        this.path = terrainHeights;</span>
+<span class="fc" id="L58">        this.turretColour = app.color(0,0,0);</span>
+<span class="fc" id="L59">        this.projectiles = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L60">        this.parachutes =3;</span>
+
+<span class="fc" id="L62">    }</span>
+
+    public int getHealth(){
+<span class="nc" id="L65">        return health;</span>
+    }
+
+    public int setHealth(int m){
+<span class="nc" id="L69">        return m;</span>
+    }
+
+    public int getFuel(){
+<span class="nc" id="L73">        return fuel;</span>
+    }
+
+    public int getPower(){
+<span class="nc" id="L77">        return power;</span>
+    }
+
+    public String getTankId(){
+<span class="nc" id="L81">        return tankId;</span>
+    }
+
+    public float getTurretAngle(){
+<span class="nc" id="L85">        return turretAngle;</span>
+    }
+
+    public float[] getPosition(){
+<span class="nc" id="L89">        float[] position = new float[2];</span>
+<span class="nc" id="L90">        position[0] = x;  // 将x值赋给数组的第一个元素</span>
+<span class="nc" id="L91">        position[1] = y; </span>
+<span class="nc" id="L92">        return position;</span>
+    }
+
+    public float getX() {
+<span class="nc" id="L96">        return x;</span>
+    }
+
+    public float setY(float m){
+<span class="nc" id="L100">        return m;</span>
+    }
+    public float getY() {
+<span class="nc" id="L103">        return y;</span>
+    }
+
+    public int[] getColour() {
+<span class="nc" id="L107">        return colour;</span>
+    }
+
+    public ArrayList&lt;Projectile&gt;getProjectiles() {
+<span class="nc" id="L111">        return projectiles;</span>
+    }
+
+    public void decreaseHealth(double damage) {
+<span class="nc" id="L115">        this.health -= damage;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (this.health &lt; 0) this.health = 0;</span>
+<span class="nc" id="L117">    }</span>
+
+    public void updateYPosition(float m){
+<span class="nc" id="L120">        this.y = m;</span>
+<span class="nc" id="L121">    }</span>
+
+    public void drawTank(){
+        //Draw the body of the tank
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if(alive()){</span>
+<span class="nc" id="L126">        float turretEndX = x + TURRET_LENGTH * (float)Math.sin(turretAngle);</span>
+<span class="nc" id="L127">        float turretEndY = (y-5) - TURRET_LENGTH * (float)Math.cos(turretAngle);</span>
+
+<span class="nc" id="L129">        app.stroke(turretColour);  // Set the turret color</span>
+<span class="nc" id="L130">        app.strokeWeight(4);        // Set the thickness of the turret line</span>
+<span class="nc" id="L131">        app.line(x, y-5, turretEndX, turretEndY);  // Draw the line representing the turret</span>
+
+<span class="nc" id="L133">        app.noStroke();  // Reset stroke settings</span>
+<span class="nc" id="L134">        app.rectMode(app.CENTER);</span>
+<span class="nc" id="L135">        app.fill(app.color(colour[0], colour[1], colour[2])); // Set color for tank body</span>
+<span class="nc" id="L136">        app.rect(x,y, 20, 5); // Main body</span>
+<span class="nc" id="L137">        app.rect(x,y-5,14, 5); // Upper body</span>
+
+        //Draw the tank with parachute
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if(paraFlying){</span>
+<span class="nc" id="L141">            PImage parachuteLogo = app.loadImage(&quot;src/main/resources/Tanks/parachute.png&quot;);</span>
+<span class="nc" id="L142">            this.y += 2;</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if(this.y &gt;= (App.HEIGHT -path[(int)this.x])){</span>
+<span class="nc" id="L144">                paraFlying = false;</span>
+            }
+<span class="nc" id="L146">            app.image(parachuteLogo,x-16,y-32,32,32);</span>
+        }
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if(noParaFlying){</span>
+<span class="nc" id="L149">            this.y += 4;</span>
+<span class="nc" id="L150">            this.health -= 4;</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if(this.y &gt;= (App.HEIGHT - path[(int)this.x])){</span>
+<span class="nc" id="L152">                noParaFlying = false;</span>
+            }
+        }
+<span class="nc" id="L155">        }</span>
+        else{
+            //Draw explosion
+<span class="nc" id="L158">            app.noStroke();</span>
+            //Red
+<span class="nc" id="L160">            app.fill(255,0,0); </span>
+<span class="nc" id="L161">            app.ellipse(x,y,60,60);</span>
+            //Orange
+<span class="nc" id="L163">            app.fill(255,97,0);</span>
+<span class="nc" id="L164">            app.ellipse(x,y,30,30);</span>
+            //Yellow
+<span class="nc" id="L166">            app.fill(255,255,0);</span>
+<span class="nc" id="L167">            app.ellipse(x,y,12,12);</span>
+        }
+<span class="nc" id="L169">    }</span>
+
+    public int getNumberofParachutes(){
+<span class="nc" id="L172">        return parachutes;</span>
+    }
+    public void moveLeft(float time) {
+        //System.out.println(&quot;Left&quot;);
+<span class="nc" id="L176">        float movement = MOVE_SPEED * time;</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (fuel &gt;= movement) {</span>
+<span class="nc" id="L178">            x -= movement;</span>
+<span class="nc" id="L179">            fuel -= movement; </span>
+        } else {
+<span class="nc" id="L181">            x -= fuel; </span>
+<span class="nc" id="L182">            fuel = 0; </span>
+        }
+<span class="nc" id="L184">        updateTankYaxisPosition(x);</span>
+<span class="nc" id="L185">    }</span>
+
+    public void moveRight(float time){
+<span class="nc" id="L188">        float movement = MOVE_SPEED * time;</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        if (fuel &gt;= movement) {</span>
+<span class="nc" id="L190">            x += movement;</span>
+<span class="nc" id="L191">            fuel -= movement; </span>
+        } else {
+<span class="nc" id="L193">            x -= fuel; </span>
+<span class="nc" id="L194">            fuel = 0; </span>
+        }
+<span class="nc" id="L196">        updateTankYaxisPosition(x);</span>
+<span class="nc" id="L197">    }</span>
+
+    public void updateTankYaxisPosition(float x2){
+<span class="nc" id="L200">        int index = (int)x2 - 1;</span>
+<span class="nc bnc" id="L201" title="All 4 branches missed.">        if(index &gt;= 0 &amp;&amp; index &lt; path.length){</span>
+<span class="nc" id="L202">            y = App.HEIGHT-path[index];</span>
+        }
+<span class="nc" id="L204">    }</span>
+
+    public void rotateTurretLeft(float time) {
+<span class="nc" id="L207">        turretAngle += ROTATE_SPEED * time;  // Increase the angle</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        if (turretAngle &gt; Math.PI / 2) {</span>
+<span class="nc" id="L209">            turretAngle = (float) (Math.PI / 2);</span>
+        }
+<span class="nc" id="L211">    }</span>
+    
+    public void rotateTurretRight(float time) {
+<span class="nc" id="L214">        turretAngle -= ROTATE_SPEED * time; // Decrease the angle</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        if (turretAngle &lt; -Math.PI / 2) {</span>
+<span class="nc" id="L216">           turretAngle = (float) (-Math.PI / 2);</span>
+        }
+<span class="nc" id="L218">    }</span>
+
+
+    public void increasePower() {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (power + 1.2 &gt; getHealth()) {</span>
+<span class="nc" id="L223">            power = getHealth();  // 将power设为health的值，不超过health</span>
+        } else {
+<span class="nc" id="L225">            power += 1.2;</span>
+        }
+
+<span class="nc" id="L228">    }</span>
+    
+
+    public void decreasePower() {
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (power - 1.2 &lt; 0) {</span>
+<span class="nc" id="L233">            power = 0;  // 避免power小于0</span>
+        } else {
+<span class="nc" id="L235">            power -= 1.2;</span>
+        }
+<span class="nc" id="L237">    }</span>
+
+
+    public boolean alive(){
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if(health &gt; 0){</span>
+<span class="nc" id="L242">            isAlive = true;</span>
+<span class="nc" id="L243">            return true;</span>
+        } else {
+<span class="nc" id="L245">            isAlive = false;</span>
+<span class="nc" id="L246">            return false;</span>
+        }
+        
+    }
+
+
+    public void fire(float wind){
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (projectiles.isEmpty()) { </span>
+<span class="nc" id="L254">            Projectile newProjectile = new Projectile(this.app, x, y-5, turretAngle, power, wind, colour,this.tankId);</span>
+<span class="nc" id="L255">            projectiles.add(newProjectile);  </span>
+
+        }
+<span class="nc" id="L258">    }</span>
+
+    public void drawProjectile() {
+<span class="nc bnc" id="L261" title="All 2 branches missed.">        for (Projectile projectile : projectiles) {</span>
+<span class="nc" id="L262">            projectile.update();  </span>
+<span class="nc" id="L263">            projectile.draw();</span>
+<span class="nc" id="L264">            projectile.collision(path);</span>
+<span class="nc" id="L265">        }</span>
+<span class="nc" id="L266">    }</span>
+
+    public void clearProjectiles() {
+<span class="nc" id="L269">        projectiles.clear();  </span>
+<span class="nc" id="L270">    }</span>
+
+    public static void getTankPositions() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L274">        throw new UnsupportedOperationException(&quot;Unimplemented method 'getTankPositions'&quot;);</span>
+    }
+
+    public boolean isFlying(float[] terrain){
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        if(this.y &lt; ( App.HEIGHT-terrain[(int)this.x])){</span>
+<span class="nc" id="L279">            return true;</span>
+        }
+<span class="nc" id="L281">        return false;</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

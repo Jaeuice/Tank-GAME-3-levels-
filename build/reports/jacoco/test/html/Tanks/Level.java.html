@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Level.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tanks_scaffold_fucktry</a> &gt; <a href="index.source.html" class="el_package">Tanks</a> &gt; <span class="el_source">Level.java</span></div><h1>Level.java</h1><pre class="source lang-java linenums">package Tanks;
+
+import processing.core.PImage;
+import processing.core.PApplet;
+import processing.data.JSONObject;
+import java.util.*;
+
+public class Level {
+    private PApplet app; 
+    private char[][] terrainLayout;
+    private int[] heights;
+    private float[] initialHeights_total_pixel;
+    private float[] smoothedHeights;
+    private PImage backgroundImage;
+    private int foregroundColour;
+    private PImage treeImage;
+    private int[][] treePositions; 
+    private HashMap&lt;Character, int[]&gt; tankPositions;
+    private HashMap&lt;String, float[]&gt; tankPixelPositions;
+
+
+    //Constructor
+<span class="nc" id="L23">    public Level(JSONObject levelConfig, PApplet app){</span>
+<span class="nc" id="L24">        this.app = app;</span>
+
+        // Import Background Image
+<span class="nc" id="L27">        String backgroundPath = levelConfig.getString(&quot;background&quot;);</span>
+<span class="nc" id="L28">        backgroundImage = app.loadImage(backgroundPath);</span>
+        
+
+        //Import Foreground Colour
+<span class="nc" id="L32">        String[] rgb = levelConfig.getString(&quot;foreground-colour&quot;).split(&quot;,&quot;);</span>
+<span class="nc" id="L33">        foregroundColour = app.color(Integer.parseInt(rgb[0]),Integer.parseInt(rgb[1]),Integer.parseInt(rgb[2]));</span>
+
+        //Import Tree Image
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        if(levelConfig.hasKey(&quot;trees&quot;)){</span>
+<span class="nc" id="L37">            String treePath = levelConfig.getString(&quot;trees&quot;);</span>
+<span class="nc" id="L38">            treeImage = app.loadImage(treePath);</span>
+        }
+
+        //Import Layout
+<span class="nc" id="L42">        String layoutPath = levelConfig.getString(&quot;layout&quot;);</span>
+<span class="nc" id="L43">        String[] lines = app.loadStrings(layoutPath);</span>
+
+        //Create the correct array with correct capacity
+<span class="nc" id="L46">        terrainLayout = new char[20][28];</span>
+        //Create to check the tree position
+<span class="nc" id="L48">        treePositions = new int[20][28];</span>
+
+        //Fill in the terrain layout
+
+<span class="nc bnc" id="L52" title="All 4 branches missed.">        for (int i = 0; i &lt; lines.length &amp;&amp; i &lt; 20; i++) {</span>
+<span class="nc bnc" id="L53" title="All 4 branches missed.">            for (int j = 0; j &lt; lines[i].length() &amp;&amp; j &lt; 28; j++) {</span>
+<span class="nc" id="L54">                terrainLayout[i][j] = lines[i].charAt(j);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">                if (lines[i].charAt(j) == 'T') {</span>
+<span class="nc" id="L56">                    treePositions[i][j] = 1;  // Use 1 to represent the tree position</span>
+                }
+            }
+        }
+<span class="nc" id="L60">        System.out.println(Arrays.deepToString(terrainLayout));</span>
+
+        //Store the position of the tank
+<span class="nc" id="L63">        tankPositions = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L64">        tankPixelPositions = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L65">        loadTankPositions();</span>
+<span class="nc" id="L66">        getTankPositions();</span>
+        
+<span class="nc" id="L68">    }</span>
+
+    public PImage getBackgroundImage() {
+<span class="nc" id="L71">        return backgroundImage;</span>
+    }
+
+    public PImage getTreeImage() {
+<span class="nc" id="L75">        return treeImage;</span>
+    }
+
+    public int getForegroundColour() {
+<span class="nc" id="L79">        return foregroundColour;</span>
+    }
+
+    public char[][] getTerrainLayout() {
+<span class="nc" id="L83">        return terrainLayout;</span>
+    }
+
+    /* This method is used to count how many cells of the terrrain's height */
+    public int[] heightsOfTerrain(){
+<span class="nc" id="L88">        heights = new int[28]; </span>
+<span class="nc" id="L89">        Arrays.fill(heights, 20); </span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        for (int j = 0; j &lt; 28; j++) { // Columns: 28</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            for (int i = 19; i &gt;= 0; i--) { // Lines:20</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                if (terrainLayout[i][j] == 'X') {</span>
+<span class="nc" id="L93">                    heights[j] = 20 - i; </span>
+<span class="nc" id="L94">                    break;</span>
+                }
+            }
+        }
+<span class="nc" id="L98">        return heights;</span>
+    }
+
+    /* This method is used to store the height of the terrain (in pixel)*/
+    public float[] createInitialHeights() {
+        // To store the original height values for each column (in pixels).
+<span class="nc" id="L104">        int[] initialHeights = new int[28];</span>
+<span class="nc" id="L105">        int[] rawheight = new int[28 * App.CELLSIZE];</span>
+<span class="nc" id="L106">        initialHeights_total_pixel = floatHeights(rawheight);</span>
+    
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        for (int i = 0; i &lt; 28; i++) {</span>
+<span class="nc" id="L109">            initialHeights[i] = heights[i] * App.CELLHEIGHT;</span>
+        }
+
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        for (int i = 0; i &lt; initialHeights.length; i++) {</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            for (int j = 0; j &lt; 32; j++) {</span>
+<span class="nc" id="L114">                initialHeights_total_pixel[i * 32 + j] = initialHeights[i];</span>
+            }
+        }
+
+<span class="nc" id="L118">        return initialHeights_total_pixel;</span>
+    }
+
+    /**
+     * Write a method to calculate the moving average
+     * Need moving average calculation to smooth the curve of terrain
+     */
+
+    public float[] movingAverage(float[] heights) {
+<span class="nc" id="L127">        int n = 32;</span>
+<span class="nc" id="L128">        float[] movingAverageHeights = new float[heights.length];</span>
+    
+        // Calculation
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        for (int i = 0; i &lt; heights.length; i++) {</span>
+<span class="nc" id="L132">            int sum = 0;</span>
+<span class="nc" id="L133">            int count = 0;</span>
+
+<span class="nc bnc" id="L135" title="All 4 branches missed.">            for (int j = i; j &lt; i + n &amp;&amp; j &lt; heights.length; j++) {</span>
+<span class="nc" id="L136">                sum += heights[j];</span>
+<span class="nc" id="L137">                count++;</span>
+            }
+    
+<span class="nc" id="L140">            movingAverageHeights[i] = 0; </span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">            if (count &gt; 0) {</span>
+<span class="nc" id="L142">                double average = (double) sum / count;</span>
+<span class="nc" id="L143">                movingAverageHeights[i] = (float) Math.round(average);</span>
+            }
+        }
+        
+<span class="nc" id="L147">        return movingAverageHeights;</span>
+    }
+    
+    public float[] getSmoothedHeights(){
+
+<span class="nc" id="L152">        smoothedHeights = movingAverage(movingAverage(initialHeights_total_pixel));</span>
+        //int a = smoothedHeights[63];
+        //System.out.println(&quot;The first one is &quot;+a);
+        //System.out.println(Arrays.toString(smoothedHeights));
+<span class="nc" id="L156">        return smoothedHeights;</span>
+    }
+
+    public float[] floatHeights(int[] heights){
+<span class="nc" id="L160">        float[] floatHeights = new float[heights.length];</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        for(int i = 0; i &lt; heights.length; i ++){</span>
+<span class="nc" id="L162">            floatHeights[i] = heights[i];</span>
+        }
+<span class="nc" id="L164">        return floatHeights;</span>
+    }
+    
+
+    public void drawTerrain(float[] terrainHeights) {
+        //getSmoothedHeights();
+<span class="nc" id="L170">        app.fill(foregroundColour); </span>
+<span class="nc" id="L171">        app.noStroke(); </span>
+    
+<span class="nc" id="L173">        app.beginShape();</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        for (int i = 0; i &lt; terrainHeights.length; i++) {</span>
+<span class="nc" id="L175">            app.vertex(i, App.HEIGHT-terrainHeights[i]);</span>
+        }
+
+<span class="nc" id="L178">        app.vertex(terrainHeights.length - 1, App.HEIGHT); // End at the bottom-right corner</span>
+<span class="nc" id="L179">        app.vertex(0, App.HEIGHT); // Close the shape back to the start</span>
+<span class="nc" id="L180">        app.endShape(PApplet.CLOSE); // CLOSE to fill the shape</span>
+    
+<span class="nc" id="L182">    }</span>
+
+    public void drawBackground(){
+<span class="nc" id="L185">        app.image(backgroundImage, 0, 0, App.WIDTH, App.HEIGHT); // Set the background image</span>
+<span class="nc" id="L186">    }</span>
+
+    public void drawTrees(){
+        
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        for (int i = 0; i &lt; treePositions.length; i++) {</span>
+            //app.stroke(255, 0, 0);  // Set the point color to red for visibility
+            //app.strokeWeight(2); 
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            for (int j = 0; j &lt; treePositions[i].length; j++) {</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">                if (treePositions[i][j] == 1) {</span>
+                    //app.image(treeImage, App.CELLSIZE, App.CELLHEIGHT); // 在标记为树的位置绘制树木图像
+<span class="nc" id="L196">                    int x = j * App.CELLSIZE;</span>
+<span class="nc" id="L197">                    int x2 = x-16;</span>
+<span class="nc" id="L198">                    float y = App.HEIGHT - smoothedHeights[x] - App.CELLSIZE;</span>
+                    //System.out.println(&quot;Drawing tree at: (&quot; + x+ &quot;, &quot; + y + &quot;)&quot; + &quot;[横轴&quot;+j+&quot;,&quot;+i+&quot;纵轴]&quot;);
+<span class="nc" id="L200">                    app.image(treeImage, x2, y, App.CELLSIZE, App.CELLHEIGHT); // 在计算的位置绘制树木图像</span>
+                    //app.point(x,y);
+                }
+            }
+        }
+        
+<span class="nc" id="L206">    }</span>
+
+    public void loadTankPositions(){
+<span class="nc" id="L209">        heightsOfTerrain();</span>
+<span class="nc" id="L210">        createInitialHeights();</span>
+<span class="nc" id="L211">        getSmoothedHeights();</span>
+        //updateInitialTerrainHeights();
+        //getSmoothedHeights();
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        if (smoothedHeights == null) {</span>
+<span class="nc" id="L215">            System.out.println(&quot;smoothedHeights array is null.&quot;);</span>
+<span class="nc" id="L216">            return; </span>
+        }
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        for (int i = 0; i &lt; terrainLayout.length; i++) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            for (int j = 0; j &lt; terrainLayout[i].length; j++) {</span>
+<span class="nc" id="L220">                char currentChar = terrainLayout[i][j];</span>
+<span class="nc bnc" id="L221" title="All 8 branches missed.">                if (currentChar == 'A' || currentChar == 'B' || currentChar == 'C' || currentChar == 'D') {</span>
+<span class="nc" id="L222">                    tankPositions.put(currentChar, new int[]{j,i});</span>
+                    
+<span class="nc" id="L224">                    int pixelIndex = j * App.CELLSIZE;</span>
+<span class="nc bnc" id="L225" title="All 4 branches missed.">                    if (pixelIndex &gt; 0 &amp;&amp; pixelIndex &lt; smoothedHeights.length) {</span>
+<span class="nc" id="L226">                        float pixelHeight = smoothedHeights[pixelIndex - 1];</span>
+<span class="nc" id="L227">                        tankPixelPositions.put(String.valueOf(currentChar), new float[]{pixelIndex, pixelHeight});</span>
+<span class="nc" id="L228">                    } else {</span>
+<span class="nc" id="L229">                        System.out.println(&quot;Index out of bounds for smoothedHeights: &quot; + pixelIndex);</span>
+                    }
+                }
+            }
+        }
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        for (Character tankId : tankPositions.keySet()) {</span>
+<span class="nc" id="L235">            int[] position = tankPositions.get(tankId);</span>
+<span class="nc" id="L236">            System.out.println(&quot;Tank &quot; + tankId + &quot; is at position: [&quot; + position[0] + &quot;, &quot; + position[1] + &quot;]&quot;);</span>
+        
+<span class="nc" id="L238">        }</span>
+        
+
+<span class="nc" id="L241">    }</span>
+
+    
+    public HashMap&lt;String, float[]&gt; getTankPositions(){
+<span class="nc" id="L245">        loadTankPositions();</span>
+        
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        for (String tankId : tankPixelPositions.keySet()) {</span>
+<span class="nc" id="L248">            float[] position = tankPixelPositions.get(tankId);</span>
+<span class="nc" id="L249">            System.out.println(&quot;Tank &quot; + tankId + &quot; is at position: [&quot; + position[0] + &quot;, &quot; + position[1] + &quot;]&quot;);</span>
+<span class="nc" id="L250">        }</span>
+        
+<span class="nc" id="L252">        return tankPixelPositions;</span>
+    }
+
+
+    public void drawAll(){
+<span class="nc" id="L257">        drawBackground();</span>
+<span class="nc" id="L258">        drawTerrain(smoothedHeights);</span>
+<span class="nc" id="L259">        drawTrees();</span>
+<span class="nc" id="L260">    }</span>
+    
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
